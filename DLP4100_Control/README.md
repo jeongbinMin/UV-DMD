@@ -75,7 +75,7 @@ python dmd_display.py --info
 ```
 INFO: python 32-bit, DLL C:\Windows\SysWOW64\D4100_usb.dll (32-bit)
 INFO: devices        : 1
-INFO: DMD type       : 1 (DLP7000/DLP7000UV, 1024x768)
+INFO: DMD type       : 0 (DLP9500/DLP9500UV, 1920x1080)
 INFO: USB speed      : high (USB2.0)
 INFO: DLL revision   : ...
 INFO: APPS_FPGA rev  : ...
@@ -113,10 +113,12 @@ python dmd_display.py --test mark
 ### Step 5 — BMP 출력
 **왜 해상도 검사:** 크기가 다른 이미지를 몰래 늘리면 마스크가 왜곡되어 합성 위치가 틀어집니다. 그래서 기본은 **오류**이고, `--resize`를 직접 줄 때만 변환합니다.
 ```
-python dmd_display.py --make-test-bmp test_mask.bmp --size 1024x768   # (이미 포함됨. DMD 크기에 맞춰 재생성 가능)
+python dmd_display.py --make-test-bmp test_mask.bmp   # (이미 포함됨, 기본 1920x1080. 다른 DMD 면 --size WxH)
 python dmd_display.py "C:\DMD\mask.bmp"
 ```
-정상: `OK: displayed C:\DMD\mask.bmp on DLP7000/DLP7000UV (1024x768), N of M mirrors ON`
+정상: `OK: displayed C:\DMD\mask.bmp on DLP9500/DLP9500UV (1920x1080), N of 2073600 mirrors ON`
+
+사용 중인 **UV DMD 1080p 는 DLP9500UV** 이므로 `--info` 의 DMD type 은 **0** 이어야 합니다. 다른 값이 나오면 이후 단계 전에 알려 주세요. 마스크 BMP 는 반드시 **1920×1080** 이어야 합니다 (프레임당 259,200 바이트).
 
 | 오류 | 해결 |
 |---|---|

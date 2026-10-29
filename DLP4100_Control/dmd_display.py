@@ -293,7 +293,7 @@ def build_parser():
     p.add_argument("--test", choices=["white", "black", "checker", "mark"],
                    help="display a built-in pattern instead of a file")
     p.add_argument("--make-test-bmp", metavar="PATH", help="write the 'mark' pattern as BMP and exit")
-    p.add_argument("--size", type=parse_size, default=(1024, 768), help="size for --make-test-bmp")
+    p.add_argument("--size", type=parse_size, default=(1920, 1080), help="size for --make-test-bmp")
     p.add_argument("--threshold", type=int, default=128, help="0-255, pixel >= threshold -> ON (128)")
     p.add_argument("--invert", action="store_true", help="swap ON/OFF after thresholding")
     p.add_argument("--resize", action="store_true", help="explicitly allow nearest-neighbour resize")
