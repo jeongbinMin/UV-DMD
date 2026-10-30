@@ -139,6 +139,7 @@ def run_process(
     out_dir: str,
     scale: int = 1,
     align: str = "center",
+    char_in_name: bool = False,
     max_steps: Optional[int] = None,
     save_final_grid: bool = True,
     save_sequence_order: bool = True,
@@ -186,7 +187,8 @@ def run_process(
 
         chosen = chr(int(best))
         chosen_chars.append(chosen)
-        bmp_name = f"step_{step:06d}{chosen}.bmp"
+        # LabVIEW가 번호만으로 경로를 만들 수 있도록 기본은 문자 없이 step_000001.bmp
+        bmp_name = f"step_{step:06d}{chosen if char_in_name else ''}.bmp"
         bmp_path = os.path.join(out_dir, bmp_name)
         save_bmp_mask(changed, nrows, ncols, bmp_path, scale=scale, align=align)
 
@@ -234,6 +236,8 @@ def main():
                     help="셀 하나를 scale x scale 픽셀로 확대(기본 1: 셀 1개 = DMD 픽셀 1개)")
     ap.add_argument("--align", choices=["center", "topleft"], default="center",
                     help="grid가 1920x1080보다 작을 때 놓을 위치(기본 center)")
+    ap.add_argument("--char_in_name", action="store_true",
+                    help="파일명 끝에 염기 문자를 붙임 (예: step_000001A.bmp)")
     ap.add_argument("--max_steps", type=int, default=None, help="최대 반복 횟수(디버그용)")
     ap.add_argument("--no_order", action="store_true", help="sequence_order 파일 저장 안 함")
     args = ap.parse_args()
@@ -265,6 +269,7 @@ def main():
         out_dir=outdir,
         scale=max(1, args.scale),
         align=args.align,
+        char_in_name=args.char_in_name,
         max_steps=args.max_steps,
         save_final_grid=True,
         save_sequence_order=(not args.no_order),
