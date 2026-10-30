@@ -49,9 +49,15 @@ python dmd_display.py "C:\DMD\mask.bmp"
 4. **DLL 호출 규약**(stdcall vs cdecl): nadinem100은 `WinDLL`, DAsh0244는 `CDLL`. 스크립트가 둘 다 시도해 자동 선택.
 5. **픽셀 비트 순서**: 한 바이트 안에서 왼쪽 픽셀이 bit7인지 bit0인지 TI 문서가 모호함. 기본은 bit7(MSB, nadinem100이 장비에서 사용). 틀리면 `--lsb-first`.
 6. **극성**: 기본은 "흰 픽셀 = 1 = 미러 ON". 반대로 보이면 `--invert`.
-7. **FPGA 초기화가 매 전원 투입 시 필요한지**: ActiveX 문서는 "초기화 안 된 보드면 `.bin`을 로드"라고만 설명. TI E2E에는 "GUI를 한 번 실행해야 DLL이 동작했다 → `program_FPGA`로 `D4100_GUI_FPGA.bin` 로드로 해결"이라는 사례가 있음([e2e 812675](https://e2e.ti.com/support/dlp/f/94/t/812675), [e2e 844754](https://e2e.ti.com/support/dlp-products-group/dlp/f/dlp-products-forum/844754/dlpd4x00kit-problem-using-d4100_usb-dll)).
+7. ~~FPGA 초기화~~ → **실측으로 확인됨(아래 "실측 결과" 참고)**: 이 장비는 전원을 켤 때마다 FPGA를 로드해야 하며, 스크립트가 자동으로 처리함.
 8. **레지스터 값의 의미**: DLPC410 데이터시트(DLPS024)는 제공되지 않아 직접 확인하지 못함. 글로벌 리셋 값(`SetBlkMd(3)`, `SetBlkAd(8)`)과 "행 주소 설정" 모드는 두 프로젝트의 동작 코드에 의존. **단, 세 프로젝트가 완전히 일치하지는 않음**: Sharvaj·nadinem100은 행 주소 설정에 `SetRowMd(3)`, DAsh0244 초안은 `SetRowMd(0b10)`(=2)를 사용. 이 스크립트는 3을 사용(동작 코드 두 곳). 출력이 위/아래로 어긋나면 이 값이 첫 의심 대상.
 9. **스크립트 종료 후 패턴 유지**: Step 6에서 실측.
+
+**실측 결과 (사용자 장비, Windows 10 19043, 32-bit Python 3.12)**
+- `D4100_usb.dll`은 `C:\Windows\SysWOW64\`에 있고 **`WinDLL`(stdcall)** 로 로드됨, 장치 1대 인식, USB 고속(0x1), VID 0x0451 / PID 0xAF33.
+- **전원 투입 직후**: `FPGA rev 0x1`, `DLPC410 version 0x11`, `GetDMDTYPE() = 16`(문서에 없는 값). `program_FPGA`로 `D4100_GUI_FPGA.bin`을 로드하면 `FPGA rev 0xac02230d`, `DLPC410 version 0x7`, `GetDMDTYPE() = 0`(DLP9500/9500UV, 1920×1080)으로 바뀜.
+- 로드된 FPGA는 같은 전원 세션에서는 유지되고, **전원을 껐다 켜면 사라짐**(다시 16).
+- 따라서 스크립트는 `GetDMDTYPE()`이 유효한 DMD 값이 아니면 `D4100_GUI_FPGA.bin`을 찾아 **자동으로 1회 로드**하고 다시 확인함. 이미 초기화된 보드는 건드리지 않음. 로드 후에도 인식이 안 되면 DMD 보드/플랫 케이블 문제로 판단해 오류를 냄.
 
 ---
 
@@ -104,7 +110,8 @@ C:\Python312-32\python.exe dmd_display.py --info
 | `WinError 193` | 64-bit Python으로 32-bit DLL 로드 | 32-bit Python 사용 |
 | `Could not load D4100_usb.dll` | DLL을 못 찾음 | `--dll "경로"` 지정 (Step 2-7) |
 | `GetNumDev() = 0` | 드라이버 미설치, 케이블/전원, GUI가 장치 점유 | Step 2-3 재확인, GUI 종료. [e2e 사례](https://e2e.ti.com/support/dlp/f/94/t/819526) |
-| `GetDMDTYPE() = 15` 또는 목록에 없는 값 | DMD 미인식 또는 FPGA 미초기화 | 플랫 케이블/DMD 보드 확인. 그래도 안 되면 `--fpga-bin "C:\Program Files (x86)\D4100Explorer\D4100_GUI_FPGA.bin"`을 **1회** 붙여 실행(전원 투입 후 한 번이면 충분한지는 미확인) |
+| `DMD still not recognised after loading the FPGA` | FPGA를 자동 로드했는데도 DMD가 인식되지 않음 | DMD 보드, 플랫 케이블, DMD 전원 확인 |
+| `GetDMDTYPE() = 16`/`15` + `loading FPGA` 메시지 | 전원 투입 직후 상태. 스크립트가 FPGA를 자동 로드함(정상) | 조치 불필요. `D4100_GUI_FPGA.bin`을 못 찾으면 `--fpga-bin "경로"` 지정 |
 | `ValueError ... too many/not enough arguments` | 호출 규약 불일치 | 결과를 알려 주세요 (자동 폴백이 실패한 경우) |
 
 **알려 주실 것**: 위 출력 전체(특히 `DMD type` 줄과 `DLL:` 줄).
@@ -173,7 +180,7 @@ C:\Python312-32\python.exe C:\DLP4100_Control\dmd_display.py C:\DMD\step_1.bmp
 - 인자는 BMP 경로 1개. 경로에 공백이 있으면 따옴표로 감싸세요.
 - **종료 코드**: 성공 0, 실패 1. **표준 출력**: 마지막 줄이 `SUCCESS` 또는 `FAILED` (기존 "DMD output" 표시기에 그대로 표시됨). 메시지는 콘솔 인코딩 문제를 피하려고 영어 ASCII만 사용.
 - `--hold`를 쓰면 프로세스가 끝나지 않으므로 System Exec의 "wait until completion"을 **False**로 해야 합니다.
-- 호출마다 DLL을 열고 닫습니다. `--fpga-bin`은 호출마다 붙이지 마세요.
+- 호출마다 DLL을 열고 닫습니다. `--fpga-bin`은 붙일 필요가 없습니다. 장비 전원을 켠 뒤 **첫 호출**만 FPGA를 자동 로드하느라 몇 초 더 걸릴 수 있습니다(소요 시간은 미측정).
 - **이 단계는 실제 LabVIEW에서 아직 검증하지 않았습니다.** 먼저 명령 프롬프트에서 같은 명령줄이 성공하면 LabVIEW에서도 같은 명령줄이 동작해야 하지만, 작업 디렉터리와 DLL 탐색 경로는 LabVIEW 쪽에서 확인이 필요합니다.
 
 ---

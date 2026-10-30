@@ -46,8 +46,30 @@ DLL_CANDIDATES = [
 ]
 
 
+FPGA_BIN_CANDIDATES = [
+    os.environ.get("D4100_FPGA_BIN", ""),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "D4100_GUI_FPGA.bin"),
+    os.path.join(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+                 "D4100Explorer", "D4100_GUI_FPGA.bin"),
+]
+
+
 class DmdError(Exception):
     pass
+
+
+class NotInitialised(DmdError):
+    """GetDMDTYPE() returned a value that is not a DMD type: the APPS_FPGA still
+    holds its power-on design. Measured on the target board: after every power
+    cycle FPGA rev reads 0x1 and GetDMDTYPE() reads 16 until D4100_GUI_FPGA.bin
+    is programmed with program_FPGA()."""
+
+
+def find_fpga_bin():
+    for p in FPGA_BIN_CANDIDATES:
+        if p and os.path.isfile(p):
+            return p
+    return None
 
 
 def _signatures():
@@ -149,9 +171,27 @@ class Device:
             raise DmdError("--device %d requested but only %d device(s) present" % (self.number, n))
         t = self.call("GetDMDTYPE", check=False)
         if t not in DMD_TYPES:
-            raise DmdError("GetDMDTYPE() = %d (15 = no DMD / not recognised). If this is a freshly "
-                           "powered board, load the FPGA once: --fpga-bin D4100_GUI_FPGA.bin" % t)
+            raise NotInitialised("GetDMDTYPE() = %d (valid: %s; 15 = no DMD). After a power-on the "
+                                 "FPGA must be loaded: --fpga-bin D4100_GUI_FPGA.bin"
+                                 % (t, ", ".join(str(k) for k in sorted(DMD_TYPES))))
         return t, DMD_TYPES[t]
+
+    def ready(self, fpga_bin=None):
+        """detect(); if the board is in its power-on state, program the FPGA once
+        and detect again. An already-initialised board is left untouched."""
+        try:
+            return self.detect()
+        except NotInitialised as e:
+            path = fpga_bin or find_fpga_bin()
+            if not path:
+                raise DmdError("%s (and no D4100_GUI_FPGA.bin found; pass --fpga-bin)" % e)
+            print("[INFO] board is in power-on state, loading FPGA from %s" % path)
+            self.program_fpga(path)
+            try:
+                return self.detect()
+            except NotInitialised as e2:
+                raise DmdError("DMD still not recognised after loading the FPGA: %s. Check the DMD "
+                               "board, its flat cable and the DMD power." % str(e2).split(" (")[0])
 
     def program_fpga(self, bin_path):
         with open(bin_path, "rb") as f:
@@ -159,7 +199,8 @@ class Device:
         buf = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
         r = self.dll.program_FPGA(buf, len(data), self.number)
         # return value is not specified in DLPU039A: shown for information only
-        print("[INFO] program_FPGA(%d bytes) returned %r" % (len(data), r))
+        print("[INFO] program_FPGA(%d bytes) returned %r; FPGA rev now 0x%08X"
+              % (len(data), r, self.call("GetFPGARev", check=False) & 0xFFFFFFFF))
 
     def info(self):
         print("[INFO] Python %d-bit" % _bits())
@@ -275,7 +316,8 @@ def main(argv=None):
     ap.add_argument("--lsb-first", action="store_true", help="pack leftmost pixel into bit 0 instead of bit 7")
     ap.add_argument("--hold", action="store_true", help="keep this process alive after displaying (Ctrl+C to quit)")
     ap.add_argument("--dll", help="path to D4100_usb.dll")
-    ap.add_argument("--fpga-bin", help="D4100_GUI_FPGA.bin to program into the APPS_FPGA first")
+    ap.add_argument("--fpga-bin", help="D4100_GUI_FPGA.bin; programmed first, always. Without it the file "
+                    "is located automatically and loaded only if the board is in its power-on state")
     ap.add_argument("--device", type=int, default=0, help="DLL device number, starts at 0")
     a = ap.parse_args(argv)
 
@@ -287,10 +329,10 @@ def main(argv=None):
             ap.error("give a BMP path, or --info, or --test")
         dev = Device(open_dll(a.dll), a.device)
         if a.fpga_bin:
-            dev.program_fpga(a.fpga_bin)
+            dev.program_fpga(a.fpga_bin)  # forced, even if already initialised
         if a.info:
             dev.info()
-        dmd_type, geom = dev.detect()
+        dmd_type, geom = dev.ready(a.fpga_bin)  # loads the FPGA itself after a power-on
         print("[INFO] DMD type %d: %s %dx%d, %d blocks x %d rows" % ((dmd_type,) + geom))
         if a.info:
             print("[OK] device recognised")
