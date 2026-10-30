@@ -95,7 +95,7 @@ C:\Python312-32\python.exe dmd_display.py --info
 [INFO] devices found: 1
 [INFO] USB speed (1=high,0=full): 0x1
 [INFO] USB descriptor: bytes=18 VID=0x???? PID=0x????
-[INFO] DMD type 1: DLP7000/DLP7000UV 0.7 XGA 1024x768, 16 blocks x 48 rows
+[INFO] DMD type 0: DLP9500/DLP9500UV 0.95 1080p 1920x1080, 15 blocks x 72 rows
 [OK] device recognised
 ```
 
@@ -132,9 +132,9 @@ python dmd_display.py --test half
 python dmd_display.py test_mask.bmp
 python dmd_display.py "C:\DMD\mask.bmp"
 ```
-- `test_mask.bmp`는 **1024×768**(DLP7000/7000UV용)입니다. DMD가 다르면 같은 모양의 테스트 이미지를 만드세요 (하드웨어 불필요):
+- `test_mask.bmp`는 **1920×1080**(DLP9500/9500UV용)입니다. 다른 크기의 DMD라면 같은 모양의 테스트 이미지를 만드세요 (하드웨어 불필요):
   ```
-  python dmd_display.py --make-test-bmp 1920x1080 test_1920.bmp
+  python dmd_display.py --make-test-bmp 1024x768 test_1024.bmp
   ```
 - 해상도가 DMD와 다르면 **오류로 중단**합니다. `--resize`를 명시했을 때만 최근접 보간으로 늘립니다 (마스크 경계가 번지지 않게).
 - 이진화: R/G/B 중 하나라도 128 이상이면 1(ON). TI `ConvertImage`는 240 기준이라는 설명이 있어(DLPU039A §5.3) 완전한 흑백 BMP가 아니면 결과가 다를 수 있습니다.
@@ -183,7 +183,7 @@ C:\Python312-32\python.exe C:\DLP4100_Control\dmd_display.py C:\DMD\step_1.bmp
 ```
 DLP4100_Control/
 ├── dmd_display.py                  # 본체 (이 저장소 소유자의 라이선스에 따름)
-├── test_mask.bmp                   # 1024x768 테스트 이미지
+├── test_mask.bmp                   # 1920x1080 테스트 이미지
 ├── requirements.txt                # Pillow
 ├── README.md
 └── LICENSE-Sharvaj-Apache-2.0.txt  # 아래 출처 표기용 사본
