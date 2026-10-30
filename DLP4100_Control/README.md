@@ -7,7 +7,8 @@ python dmd_display.py "C:\DMD\mask.bmp"
 범위는 "BMP 1장 → DMD 출력"뿐입니다. GUI, 노출 시간, 시퀀스, 트리거, LabVIEW 개발은 포함하지 않습니다.
 
 > **현재 상태 (사용자 장비 실측)**: DLP9500/9500UV(1920×1080)에서 `test_mask.bmp`가 DMD에 정상 출력됨(글자 `F` 정상 방향, 1픽셀 대각선 매끈 → 비트 순서 기본값 MSB 우선이 맞음), 스크립트 종료 후에도 패턴 유지, 전원 투입 직후 FPGA 자동 로드 후 출력 성공.
-> 아직 확인하지 못한 것: 유지 시간의 상한, LabVIEW System Exec 호출.
+> 명령줄 호출(32-bit python.exe 전체 경로, 다른 작업 디렉터리에서 실행)도 성공(종료 코드 0)하고, 없는 BMP는 `FAILED`와 종료 코드 1을 반환함을 확인.
+> 아직 확인하지 못한 것: 유지 시간의 상한, 실제 LabVIEW System Exec.vi에서의 호출.
 
 ---
 
