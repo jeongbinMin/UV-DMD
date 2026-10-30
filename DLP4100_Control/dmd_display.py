@@ -35,6 +35,13 @@ DMD_TYPES = {
 }
 NO_DMD = 15
 
+# Read-only getters, DLPU039A chapter 6: used by --regs to compare the state left by
+# the TI GUI with the state left by this script.
+REG_GETTERS = ("GetBlkMd", "GetBlkAd", "GetRowMd", "GetRowAddr", "GetRST2BLKZ", "GetCOMPDATA",
+               "GetNSFLIP", "GetWDT", "GetPWRFLOAT", "GetEXTRESETENBL", "GetSWOverrideEnable",
+               "GetSWOverrideValue", "GetTPGEnable", "GetPatternForce", "GetPatternSelect",
+               "GetLoad4", "GetGPIO")
+
 THRESHOLD = 128  # R, G or B >= THRESHOLD -> pixel is 1 (mirror ON)
 
 DLL_CANDIDATES = [
@@ -86,7 +93,7 @@ def _signatures():
     }
     for n in ("GetDriverRev", "GetFirmwareRev", "GetFPGARev"):
         sig[n] = (u, [s])
-    for n in ("GetUsbSpeed", "GetDDCVERSION", "GetDMDTYPE", "LoadControl", "ClearFifos"):
+    for n in ("GetUsbSpeed", "GetDDCVERSION", "GetDMDTYPE", "LoadControl", "ClearFifos") + REG_GETTERS:
         sig[n] = (s, [s])
     for n in ("SetBlkMd", "SetBlkAd", "SetRowMd", "SetRowAddr", "SetTPGEnable",
               "SetPatternForce", "SetPatternSelect", "SetPWRFLOAT"):
@@ -220,6 +227,14 @@ class Device:
         except Exception as e:
             print("[WARN] GetDescriptor failed: %s" % e)
 
+    def regs(self):
+        """Print the APPS_FPGA control registers. Read-only: changes nothing."""
+        for name in REG_GETTERS:
+            try:
+                print("[REG] %-20s = %d" % (name[3:], self.call(name, check=False)))
+            except DmdError as e:
+                print("[WARN] %s" % e)
+
     def show(self, payload, dmd_type, geom):
         """Load a full 1-bit frame (MSB/LSB packing already done) and reset the mirrors."""
         _, cols, rows, blocks, rpb = geom
@@ -228,7 +243,6 @@ class Device:
             raise DmdError("payload is %d bytes, expected %d" % (len(payload), bpr * rows))
         c = self.call
         c("SetTPGEnable", 0)   # internal scrolling test patterns off, or they hide our data
-        c("SetPWRFLOAT", 0)    # make sure mirrors are not parked
         c("ClearFifos")        # DLPU039A 6.2.3: known state before sending image data
         c("SetBlkMd", 0)       # block mode: no-op while loading
         c("SetRowMd", 3)       # row mode: set address
@@ -309,6 +323,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Show a BMP on a DLP Discovery 4100 DMD.")
     ap.add_argument("bmp", nargs="?", help="BMP file to display (must equal the DMD resolution)")
     ap.add_argument("--info", action="store_true", help="connect, print device info, exit")
+    ap.add_argument("--regs", action="store_true", help="print control registers (read-only), exit")
     ap.add_argument("--test", choices=["on", "off", "half", "tpg"], help="built-in test pattern")
     ap.add_argument("--make-test-bmp", nargs=2, metavar=("WxH", "OUT.bmp"), help="write a test image, no hardware needed")
     ap.add_argument("--resize", action="store_true", help="stretch a wrong-size BMP to the DMD size")
@@ -325,8 +340,8 @@ def main(argv=None):
         if a.make_test_bmp:
             make_test_bmp(*a.make_test_bmp)
             return 0
-        if not (a.bmp or a.info or a.test):
-            ap.error("give a BMP path, or --info, or --test")
+        if not (a.bmp or a.info or a.test or a.regs):
+            ap.error("give a BMP path, or --info, --regs or --test")
         dev = Device(open_dll(a.dll), a.device)
         if a.fpga_bin:
             dev.program_fpga(a.fpga_bin)  # forced, even if already initialised
@@ -334,6 +349,10 @@ def main(argv=None):
             dev.info()
         dmd_type, geom = dev.ready(a.fpga_bin)  # loads the FPGA itself after a power-on
         print("[INFO] DMD type %d: %s %dx%d, %d blocks x %d rows" % ((dmd_type,) + geom))
+        if a.regs:
+            dev.regs()
+            print("SUCCESS")
+            return 0
         if a.info:
             print("[OK] device recognised")
             return 0
