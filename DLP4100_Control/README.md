@@ -58,6 +58,9 @@ python dmd_display.py "C:\DMD\mask.bmp"
 - **전원 투입 직후**: `FPGA rev 0x1`, `DLPC410 version 0x11`, `GetDMDTYPE() = 16`(문서에 없는 값). `program_FPGA`로 `D4100_GUI_FPGA.bin`을 로드하면 `FPGA rev 0xac02230d`, `DLPC410 version 0x7`, `GetDMDTYPE() = 0`(DLP9500/9500UV, 1920×1080)으로 바뀜.
 - 로드된 FPGA는 같은 전원 세션에서는 유지되고, **전원을 껐다 켜면 사라짐**(다시 16).
 - 따라서 스크립트는 `GetDMDTYPE()`이 유효한 DMD 값이 아니면 `D4100_GUI_FPGA.bin`을 찾아 **자동으로 1회 로드**하고 다시 확인함. 이미 초기화된 보드는 건드리지 않음. 로드 후에도 인식이 안 되면 DMD 보드/플랫 케이블 문제로 판단해 오류를 냄.
+- **`SetPWRFLOAT(0)`은 이 보드에서 미러를 park(float)시킴(해석)**: 로드 시퀀스에 이 호출을 넣었을 때는 `tpg`/`on`/`half`/BMP가 모두 `SUCCESS`인데 DMD에 아무것도 안 보였고(TI GUI는 같은 보드에서 정상), 이 호출만 뺀 뒤 `--test on`이 보임. 정상 동작 중 `PWRFLOAT` 레지스터는 **1**로 읽힘 → TI 문서(1 = float 활성)와 **반대 극성**으로 보임. 이 스크립트는 `SetPWRFLOAT`를 호출하지 않음. (호출 직후 값을 읽어 직접 확인하지는 않음)
+- 정상 출력 후 `--regs` 값: `BlkMd 0, BlkAd 8, RowMd 0, RowAddr 0, WDT 1, PWRFLOAT 1, SWOverrideEnable 1, SWOverrideValue 0, TPGEnable 0, 나머지 0`. `SWOverrideEnable = 1`이라 보드의 SW1 위치와 무관하게 소프트웨어 값이 적용되는 것으로 읽힘(DLPU039A §6.2.28).
+- `python dmd_display.py --regs`는 레지스터를 **읽기만** 하는 진단 명령(상태 변경 없음). 문제가 생기면 TI GUI로 정상 출력 후 `--regs`와 비교.
 
 ---
 
