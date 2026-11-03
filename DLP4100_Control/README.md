@@ -200,6 +200,7 @@ DLP4100_Control/
 ├── test_text.bmp                   # 1920x1080, 큰 글씨 TEST (--test text와 동일한 그림, BMP 경로 시험용)
 ├── requirements.txt                # Pillow
 ├── README.md
+├── synthesis_masks/                # 서열 CSV → 사이클별 마스크 BMP 생성기 (자체 README 참고)
 └── LICENSE-Sharvaj-Apache-2.0.txt  # 아래 출처 표기용 사본
 ```
 - 로드/리셋 호출 순서는 [Sharvaj/DLP-Discovery-DMD-Control](https://github.com/Sharvaj/DLP-Discovery-DMD-Control)(Apache-2.0)의 `ControllerFunctions.cpp`를 Python으로 다시 작성하고 일반화한 것입니다. Apache-2.0 §4에 따라 라이선스 사본과 출처를 유지했습니다.
