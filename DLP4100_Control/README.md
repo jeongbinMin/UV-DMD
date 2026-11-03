@@ -130,9 +130,11 @@ python dmd_display.py --test tpg
 python dmd_display.py --test on
 python dmd_display.py --test off
 python dmd_display.py --test half
+python dmd_display.py --test text
 ```
 - `tpg`: 내부 테스트 패턴 1 (`SetTPGEnable/PatternForce/PatternSelect`). 이후의 일반 출력은 `SetTPGEnable(0)`으로 자동 해제됩니다.
 - `on`/`off`: 전체 ON/OFF. `half`: 위쪽 절반 ON.
+- `text`: 검은 바탕에 흰색 큰 글씨 **`TEST`**(가로 약 80%, 가운데). `E`와 `S`는 좌우 대칭이 아니라서 거울상이나 상하 뒤집힘을 바로 알 수 있음. 글꼴 파일 없이 직접 그림.
 - 미러가 ON이어도 **조명(UV 광원)과 광학 경로가 있어야** 눈에 보입니다. 안 보이면 조명을 먼저 확인하세요.
 
 **알려 주실 것**: 각 명령이 `SUCCESS`를 냈는지, 실제 DMD 출력이 기대대로인지.

@@ -3,7 +3,7 @@
 
     python dmd_display.py "C:\\DMD\\mask.bmp"
     python dmd_display.py --info
-    python dmd_display.py --test on|off|half|tpg
+    python dmd_display.py --test on|off|half|text|tpg
     python dmd_display.py --make-test-bmp 1024x768 test_mask.bmp
 
 Uses only the low-level D4100_usb.dll API (TI DLPU039A, chapter 6). The ActiveX
@@ -291,9 +291,37 @@ def bmp_to_payload(path, geom, resize=False, invert=False, lsb_first=False):
     return bw.tobytes("raw", "1;R" if lsb_first else "1")
 
 
+# 5x7 block letters, drawn directly so no font file is needed. T/E/S are not
+# left-right symmetric (E, S), so a mirrored or flipped image is easy to spot.
+FONT = {
+    "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+    "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+    "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+}
+
+
+def text_image(cols, rows, text="TEST"):
+    """White block letters on black, centred, ~80% of the width."""
+    from PIL import Image, ImageDraw
+    unit = int(cols * 0.8) // (len(text) * 6 - 1)
+    x0 = (cols - (len(text) * 6 - 1) * unit) // 2
+    y0 = (rows - 7 * unit) // 2
+    img = Image.new("1", (cols, rows), 0)
+    d = ImageDraw.Draw(img)
+    for i, ch in enumerate(text):
+        for r, line in enumerate(FONT[ch]):
+            for c, v in enumerate(line):
+                if v == "#":
+                    x, y = x0 + (i * 6 + c) * unit, y0 + r * unit
+                    d.rectangle([x, y, x + unit - 1, y + unit - 1], fill=1)
+    return img
+
+
 def test_payload(kind, geom):
     _, cols, rows, _, _ = geom
     n = cols // 8 * rows
+    if kind == "text":
+        return text_image(cols, rows).tobytes()   # mode "1": 8 pixels per byte, leftmost in bit 7
     if kind == "on":
         return b"\xff" * n
     if kind == "off":
@@ -324,7 +352,7 @@ def main(argv=None):
     ap.add_argument("bmp", nargs="?", help="BMP file to display (must equal the DMD resolution)")
     ap.add_argument("--info", action="store_true", help="connect, print device info, exit")
     ap.add_argument("--regs", action="store_true", help="print control registers (read-only), exit")
-    ap.add_argument("--test", choices=["on", "off", "half", "tpg"], help="built-in test pattern")
+    ap.add_argument("--test", choices=["on", "off", "half", "text", "tpg"], help="built-in test pattern")
     ap.add_argument("--make-test-bmp", nargs=2, metavar=("WxH", "OUT.bmp"), help="write a test image, no hardware needed")
     ap.add_argument("--resize", action="store_true", help="stretch a wrong-size BMP to the DMD size")
     ap.add_argument("--invert", action="store_true", help="swap ON/OFF (default: white pixel = mirror ON)")
