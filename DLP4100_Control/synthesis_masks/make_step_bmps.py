@@ -16,8 +16,10 @@ The chosen letters, in order, are the synthesis order (sequence_order.txt). Ever
 string is a subsequence of that order, so exposing the BMPs in step order builds
 each cell's sequence, read from its FIRST letter to its last.
 
+The file is named step_<6-digit step><base letter>.bmp, e.g. step_000001A.bmp, which is the
+name the LabVIEW program builds (folder + "\\step_" + zero-padded step + letter + ".bmp").
 The BMP has exactly the grid size (1920x1080 -> the DMD), 8-bit grey, 0 / 255, so it
-goes straight into:  python dmd_display.py step_000001.bmp
+goes straight into:  python dmd_display.py step_000001A.bmp
 """
 import argparse
 import csv
@@ -86,8 +88,9 @@ def main():
     ap.add_argument("--outdir", help="default: <csv name without .csv>_bmp next to the CSV")
     ap.add_argument("--rows", type=int, default=DMD_ROWS, help="default 1080")
     ap.add_argument("--cols", type=int, default=DMD_COLS, help="default 1920")
-    ap.add_argument("--with-base", action="store_true",
-                    help="put the base letter in the file name: step_000001A.bmp (default: step_000001.bmp)")
+    ap.add_argument("--no-base", action="store_true",
+                    help="leave the base letter out of the file name: step_000001.bmp "
+                         "(default: step_000001A.bmp, the name the LabVIEW program builds)")
     ap.add_argument("--max-steps", type=int, default=None, help="stop early (debugging)")
     a = ap.parse_args()
 
@@ -110,7 +113,7 @@ def main():
             break
         step += 1
         max_len, letter, changed = res
-        name = "step_%06d%s.bmp" % (step, letter if a.with_base else "")
+        name = "step_%06d%s.bmp" % (step, "" if a.no_base else letter)
         write_mask(changed, a.rows, a.cols, os.path.join(outdir, name))
         order.append(letter)
         log.append((step, letter, max_len, len(changed), name))

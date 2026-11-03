@@ -4,8 +4,8 @@ DMD의 마이크로미러 1개 = CSV의 칸 1개. 격자 크기가 DMD와 같아
 
 ```
 python make_random_csv.py                 # random_sequences_1920x1080.csv 생성 (시드 1234, 길이 15~25, ACGT)
-python make_step_bmps.py                  # 위 CSV로 random_sequences_1920x1080_bmp\step_000001.bmp ... 생성
-python ..\dmd_display.py random_sequences_1920x1080_bmp\step_000001.bmp
+python make_step_bmps.py                  # 위 CSV로 random_sequences_1920x1080_bmp\step_000001A.bmp ... 생성
+python ..\dmd_display.py random_sequences_1920x1080_bmp\step_000001A.bmp   (A 자리는 1단계의 염기 글자)
 ```
 
 필요: `pip install -r ..\requirements.txt` (Pillow). DMD 쪽 장비 없이도 두 스크립트는 실행됩니다.
@@ -25,7 +25,7 @@ python ..\dmd_display.py random_sequences_1920x1080_bmp\step_000001.bmp
 
 | 파일 | 내용 |
 |---|---|
-| `step_000001.bmp` ... | 사이클별 마스크. 8비트 흑백, 0/255, 1920×1080. `--with-base`를 주면 `step_000001A.bmp`처럼 글자가 붙음 |
+| `step_000001A.bmp` ... | 사이클별 마스크. 8비트 흑백, 0/255, 1920×1080. 이름 끝의 글자는 그 step의 염기. `--no-base`를 주면 글자 없이 `step_000001.bmp` |
 | `sequence_order.txt` | 전체 합성 순서(글자 이어붙임) |
 | `steps_log.tsv` | step, 글자, 최대 길이, 노광 칸 수, 파일명 |
 
@@ -44,7 +44,7 @@ python ..\dmd_display.py random_sequences_1920x1080_bmp\step_000001.bmp
 | 격자 크기를 1920×1080으로 고정 검사 | BMP가 DMD와 크기가 다르면 `dmd_display.py`가 오류를 냄 |
 | 짧은/긴 행을 조용히 채우지 않고 오류 | 크기 오류를 숨기지 않기 위해 |
 | `--scale` 제거 | 정수 배율로는 1920×1080을 만들 수 없음 |
-| 파일명 기본값 `step_000001.bmp` | LabVIEW 블록다이어그램의 `\step_` + 6자리 번호 + `.bmp` 구조에 맞춤. 글자가 필요하면 `--with-base` |
+| (기존과 같음) 파일명 `step_000001A.bmp` | LabVIEW가 `\step_` + 6자리 번호 + **염기 글자** + `.bmp`로 이름을 만드는 것으로 보임(String Subset 노드). 글자 없는 이름이 필요하면 `--no-base` |
 | 이모지 없는 ASCII 출력, 끝에 `SUCCESS` | Windows 한국어 콘솔(cp949)에서 `UnicodeEncodeError`를 피하기 위해 |
 | 저장 후 BMP를 다시 읽어 노광 칸과 비교 | 파일이 의도한 칸을 정확히 담았는지 매 step 확인 |
 
