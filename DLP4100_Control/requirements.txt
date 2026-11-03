@@ -1,0 +1,3 @@
+# Pillow only: BMP reading and 1-bit packing. numpy is deliberately not used
+# (32-bit Windows wheels are not guaranteed for every numpy release).
+Pillow>=10.0
